@@ -1,4 +1,5 @@
 import com.wlc.po.User;
+import com.wlc.util.LoginCheckUtil;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.AuthenticationException;
 import org.apache.shiro.authc.UsernamePasswordToken;
@@ -22,9 +23,9 @@ public class TestUserRoles {
     public static void main(String[] args){
 
         //定义了3个用户
-        User  zhangsan= new User("张三","12345");
-        User  wangwu= new User("王五","66666");
-        User  lisi= new User("李四","123");
+        User  zhangsan= new User(1,"张三","12345",null);
+        User  wangwu= new User(2,"王五","66666",null);
+        User  lisi= new User(3,"李四","123",null);
 
         //把用户放入到list中
         List<User> userList = new ArrayList<>();
@@ -56,10 +57,10 @@ public class TestUserRoles {
 
         //判断用户是否可以登录
         for(User user:userList){
-            if(login(user)){
-                System.out.printf("%s \t登录成功，用的密码是： %s\t %n",user.getPassword(),user.getPassword());
+            if(new LoginCheckUtil().login(user)){
+                System.out.println(user.getName() + " 登录成功，密码是：" + user.getPassword());
             }else{
-                System.out.printf("%s \t登录失败，用的密码是： %s\t %n",user.getPassword(),user.getPassword());
+                System.out.println(user.getName() + " 登录失败，密码是：" + user.getPassword());
             }
         }
 
@@ -67,7 +68,7 @@ public class TestUserRoles {
         //判断可以登录的用户是否拥有某种角色
         for(User user:userList){
             for(String role:rolesList){
-                if(login(user)){
+                if(new LoginCheckUtil().login(user)){
                     if(hasRole(user,role)){
                         System.out.println(user.getName() + " 登录成功，拥有的角色是：" + role);
                     }else{
@@ -83,7 +84,7 @@ public class TestUserRoles {
         //判断用户是否拥有某种权限
         for(User user: userList){
             for(String permit: permitsList){
-                if(login(user)){
+                if(new LoginCheckUtil().login(user)){
                     if(isPermitted(user,permit)){
                         System.out.println("登录成功的用户名是： " + user.getName() + "拥有的权限是： " + permit);
                     }else{
@@ -97,46 +98,18 @@ public class TestUserRoles {
     }
 
     private static boolean hasRole(User user, String role) {
-        Subject subject = getSubject(user);
+        //Subject subject = getSubject(user);
+        Subject subject = new LoginCheckUtil().getSubject(user);
         return subject.hasRole(role);
     }
 
     private static boolean isPermitted(User user, String permit) {
-        Subject subject = getSubject(user);
+        Subject subject = new LoginCheckUtil().getSubject(user);
         return subject.isPermitted(permit);
     }
 
 
-    private static Subject getSubject(User user) {
-        //加载配置文件，并获取工厂
-        Factory<SecurityManager> factory = new IniSecurityManagerFactory("classpath:shiro.ini");
-        //获取安全管理者实例
-        SecurityManager sm = factory.getInstance();
-        //将安全管理者放入全局对象
-        SecurityUtils.setSecurityManager(sm);
-        //全局对象通过安全管理者生成Subject对象
-        Subject subject = SecurityUtils.getSubject();
 
-        return subject;
-    }
 
-    private static boolean login(User user) {
-        Subject subject= getSubject(user);
-        //如果已经登录过了，退出
-        if(subject.isAuthenticated())
-            subject.logout();
-
-        //封装用户的数据
-        UsernamePasswordToken token = new UsernamePasswordToken(user.getName(), user.getPassword());
-        try {
-            //将用户的数据token 最终传递到Realm中进行对比
-            subject.login(token);
-        } catch (AuthenticationException e) {
-            //验证错误
-            return false;
-        }
-
-        return subject.isAuthenticated();
-    }
 
 }
